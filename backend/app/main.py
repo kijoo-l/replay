@@ -3,6 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine
 
+tags_metadata = [
+    {
+        "name": "health",
+        "description": "배포된 RePlay 백엔드 서버의 상태를 확인하는 헬스 체크 엔드포인트입니다.",
+    },
+]
+
 app = FastAPI(
     title="RePlay API",
     description="연극/영화 소품 중고거래 플랫폼 Re;Play 백엔드 API",
@@ -31,6 +38,11 @@ def on_startup():
     print(f"ENV: {settings.ENV}")
     print(f"DATABASE_URL: {settings.DATABASE_URL}")
     
-@app.get("/health")
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="헬스 체크",
+    description="Re;Play 백엔드 서버와 DB 설정이 정상적으로 동작하는지 확인합니다.",
+)
 def health_check():
     return {"status": "ok", "service": "RePlay"}
