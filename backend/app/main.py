@@ -4,6 +4,7 @@ from app.config import settings
 from app.database import engine
 from app.api.v1.router import api_router
 from app.api.v1 import realtime
+from app.database import init_test_model
 
 tags_metadata = [
     {
@@ -41,14 +42,19 @@ app.include_router(realtime.router)     # /ws/...
 
 @app.on_event("startup")
 def on_startup():
+    init_test_model()
     print(f"ENV: {settings.ENV}")
     print(f"DATABASE_URL: {settings.DATABASE_URL}")
     
 @app.get(
     "/health",
-    tags=["health"],
     summary="헬스 체크",
-    description="Re;Play 백엔드 서버와 DB 설정이 정상적으로 동작하는지 확인합니다.",
+    description=(
+        "서비스 헬스 체크용 엔드포인트입니다.\n\n"
+        "TODO: DB 세션(get_db)을 사용해 실제 DB 연결 상태도 함께 점검하도록 확장 예정."
+    ),
+    tags=["시스템"],
 )
-def health_check():
+async def health():
+    # TODO: 추후 get_db 의존성을 주입해 실제 DB 쿼리 1회 수행 후 상태를 반환하는 방식으로 확장
     return {"status": "ok", "service": "RePlay"}
