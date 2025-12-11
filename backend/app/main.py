@@ -1,10 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine
 from app.api.v1.router import api_router
 from app.api.v1 import realtime
 from app.database import init_test_model
+
+from app.schemas.common import fail, ok
+from app.utils.exceptions import AppException
+from fastapi.exceptions import HTTPException
 
 tags_metadata = [
     {
@@ -18,6 +23,21 @@ app = FastAPI(
     description="연극/영화 소품 중고거래 플랫폼 Re;Play 백엔드 API",
     version="0.1.0",
 )
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=fail(exc.code, exc.message).dict()
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=fail("HTTP_ERROR", exc.detail).dict()
+    )
 
 # CORS 설정
 origins = [
@@ -49,12 +69,8 @@ def on_startup():
 @app.get(
     "/health",
     summary="헬스 체크",
-    description=(
-        "서비스 헬스 체크용 엔드포인트입니다.\n\n"
-        "TODO: DB 세션(get_db)을 사용해 실제 DB 연결 상태도 함께 점검하도록 확장 예정."
-    ),
+    description="기본 시스템 헬스 체크. TODO: DB 연결 상태 검사 추가 예정.",
     tags=["시스템"],
 )
 async def health():
-    # TODO: 추후 get_db 의존성을 주입해 실제 DB 쿼리 1회 수행 후 상태를 반환하는 방식으로 확장
-    return {"status": "ok", "service": "RePlay"}
+    return ok({"service": "RePlay"})
