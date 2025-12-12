@@ -19,13 +19,13 @@ class UserCreate(BaseModel):
     club_id: Optional[int] = None
 
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id: int
+    email: EmailStr
+    name: str
+    role: UserRole
+    school_id: Optional[int] = None
+    club_id: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
