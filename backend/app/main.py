@@ -1,7 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine
+from app.api.v1.router import api_router
+from app.api.v1 import realtime, auth
+from app.database import init_test_model
+
+from app.schemas.common import fail, ok
+from app.utils.exceptions import AppException
+from fastapi.exceptions import HTTPException
 
 tags_metadata = [
     {
@@ -15,6 +23,21 @@ app = FastAPI(
     description="연극/영화 소품 중고거래 플랫폼 Re;Play 백엔드 API",
     version="0.1.0",
 )
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=fail(exc.code, exc.message).dict()
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=fail("HTTP_ERROR", exc.detail).dict()
+    )
 
 # CORS 설정
 origins = [
@@ -33,16 +56,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# HTTP + WebSocket 라우터 등록
+app.include_router(api_router)          # /api/v1/...
+app.include_router(realtime.router)     # /ws/...
+app.include_router(auth.router, prefix="/api/v1")
+
 @app.on_event("startup")
 def on_startup():
+    init_test_model()
     print(f"ENV: {settings.ENV}")
     print(f"DATABASE_URL: {settings.DATABASE_URL}")
     
 @app.get(
     "/health",
-    tags=["health"],
     summary="헬스 체크",
-    description="Re;Play 백엔드 서버와 DB 설정이 정상적으로 동작하는지 확인합니다.",
+    description="기본 시스템 헬스 체크. TODO: DB 연결 상태 검사 추가 예정.",
+    tags=["시스템"],
 )
-def health_check():
-    return {"status": "ok", "service": "RePlay"}
+async def health():
+    return ok({"service": "RePlay"})
