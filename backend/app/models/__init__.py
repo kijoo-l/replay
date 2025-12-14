@@ -1,0 +1,5 @@
+from app.database import Base
+
+from .school import School
+from .club import Club
+from .user import User
