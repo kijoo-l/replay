@@ -20,12 +20,14 @@ export default function HomeScreen() {
   const initialTab = (searchParams.get("tab") as BottomTabKey) ?? "home";
 
   const [activeTab, setActiveTab] = useState<BottomTabKey>(initialTab);
+
   const [showItemForm, setShowItemForm] = useState(false);
   const [showPostForm, setShowPostForm] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
 
   const [headerHidden, setHeaderHidden] = useState(false);
 
+  /* ---------------- 탭 변경 ---------------- */
   const handleTabChange = (tab: BottomTabKey) => {
     setActiveTab(tab);
     setShowItemForm(false);
@@ -34,6 +36,7 @@ export default function HomeScreen() {
     setHeaderHidden(false);
   };
 
+  /* ---------------- 헤더 타이틀 ---------------- */
   const headerTitle =
     activeTab === "trade"
       ? "거래"
@@ -47,21 +50,26 @@ export default function HomeScreen() {
 
   return (
     <div className="flex h-full w-full flex-col bg-slate-50">
-      {/* 상단 헤더 */}
+      {/* ✅ App Header */}
       <AppHeader
         title={headerTitle}
         showLogo={!showItemForm && !showPostForm && !showCalendar}
-        hidden={headerHidden}
+        hidden={headerHidden || showCalendar} // 🔥 공연 일정 확인 시 무조건 숨김
       />
 
-      {/* 가운데 영역 */}
+      {/* =================== 메인 영역 =================== */}
       <main className="flex-1 overflow-hidden bg-slate-50">
         {showItemForm ? (
           <ItemNewScreen onBack={() => setShowItemForm(false)} />
         ) : showPostForm ? (
           <CommunityWriteScreen onBack={() => setShowPostForm(false)} />
         ) : showCalendar ? (
-          <PerformanceCalendarScreen />
+          <PerformanceCalendarScreen
+            onBack={() => {
+              setShowCalendar(false);
+              setHeaderHidden(false);
+            }}
+          />
         ) : (
           <>
             {activeTab === "home" && <HomeTab />}
@@ -69,31 +77,35 @@ export default function HomeScreen() {
             {activeTab === "trade" && (
               <TradeScreen
                 onAddClick={() => setShowItemForm(true)}
-                onDetailModeChange={setHeaderHidden} // ✅ 상세 모드일 때 헤더 숨김
+                onDetailModeChange={setHeaderHidden}
               />
             )}
 
             {activeTab === "manage" && (
               <ManageScreen
                 onAddClick={() => setShowItemForm(true)}
-                onDetailModeChange={(isDetail) => setHeaderHidden(isDetail)}
+                onDetailModeChange={setHeaderHidden}
               />
             )}
 
             {activeTab === "community" && (
               <CommunityScreen
-                onCalendarClick={() => setShowCalendar(true)}
-                onHeaderHiddenChange={(hidden) => setHeaderHidden(hidden)}
+                onCalendarClick={() => {
+                  setHeaderHidden(true);
+                  setShowCalendar(true);
+                }}
+                onHeaderHiddenChange={setHeaderHidden}
               />
             )}
 
-            {activeTab === "mypage" && (  <MyPageScreen onDetailModeChange={setHeaderHidden} />
+            {activeTab === "mypage" && (
+              <MyPageScreen onDetailModeChange={setHeaderHidden} />
             )}
           </>
         )}
       </main>
 
-      {/* 하단 네비 */}
+      {/* =================== 하단 네비 =================== */}
       <BottomNav
         active={showItemForm ? "manage" : showPostForm ? "community" : activeTab}
         onChange={handleTabChange}
@@ -102,12 +114,14 @@ export default function HomeScreen() {
   );
 }
 
-/* ----------------- 홈 탭 (메인 홈 화면) ----------------- */
+/* ===================================================== */
+/* ===================== 홈 탭 ========================== */
+/* ===================================================== */
 
 function HomeTab() {
   return (
     <div className="no-scrollbar h-full space-y-6 overflow-y-auto px-4 pb-6 pt-2">
-      {/* 상단 큰 카드 */}
+      {/* 상단 카드 */}
       <section
         className="mt-2 rounded-3xl px-5 py-6
         bg-[linear-gradient(90deg,#DEF8EC_0%,#DEF8EC_98%,#FDFDFD_100%)]"
@@ -119,19 +133,15 @@ function HomeTab() {
           원하는 소품, 의상, 가구를 손쉽게 거래하세요
         </p>
 
-        {/* 검색창 + 카메라 버튼 */}
         <div className="mt-4 flex items-center gap-2">
-          <div className="flex flex-1 items-center gap-2 rounded-2xl bg-white px-3 py-2 text-[14px] text-slate-500 shadow-sm">
+          <div className="flex flex-1 items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-sm">
             <Image src="/icons/search.svg" alt="검색" width={24} height={24} />
             <input
               className="h-9 w-full bg-transparent text-[14px] text-[#D1D6DB] outline-none"
               placeholder="어떤 소품을 찾으시나요?"
             />
           </div>
-          <button
-            className="flex h-10 w-10 items-center justify-center rounded-[20px]
-                        bg-gradient-to-r from-white to-[#D9FFEE]"
-          >
+          <button className="flex h-10 w-10 items-center justify-center rounded-[20px] bg-gradient-to-r from-white to-[#D9FFEE]">
             <Image src="/icons/camera.svg" alt="카메라" width={18} height={18} />
           </button>
         </div>
@@ -171,13 +181,9 @@ function HomeTab() {
   );
 }
 
-/* ----------------- 홈 탭용 작은 컴포넌트들 ----------------- */
+/* ----------------- 작은 컴포넌트 ----------------- */
 
-type SectionHeaderWithArrowProps = {
-  title: string;
-};
-
-function SectionHeaderWithArrow({ title }: SectionHeaderWithArrowProps) {
+function SectionHeaderWithArrow({ title }: { title: string }) {
   return (
     <div className="flex items-center justify-between">
       <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
