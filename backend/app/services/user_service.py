@@ -34,7 +34,13 @@ class UserService:
 
         saved = UserRepository.create(db, new_user)
         return UserResponse.from_orm(saved)
-
+    
+    def get_user_by_id(self, db: Session, user_id: int):
+        user = UserRepository.get_by_id(db, user_id)
+        if not user:
+            raise NotFoundException("사용자를 찾을 수 없습니다.")
+        return user
+    
     def login(self, db: Session, email: str, password: str) -> str:
         user = UserRepository.get_by_email(db, email)
         if not user:
@@ -44,3 +50,5 @@ class UserService:
             raise ValidationException("비밀번호가 일치하지 않습니다.")
 
         return create_access_token({"sub": str(user.id), "role": user.role.value})
+    
+    
