@@ -10,13 +10,17 @@ import ItemDetailScreen, { TradeItem } from "@/app/screens/ItemDetailScreen";
 type TradeScreenProps = {
   onAddClick: () => void;
   onDetailModeChange?: (isDetail: boolean) => void;
+
+  // ✅ Home에서 검색어 넘겨주기용
+  initialQuery?: string;
+  onQueryChange?: (q: string) => void;
 };
 
 type TradeItemEx = TradeItem & {
-  location?: string; // 거래 1 같은 "연세대학교" "혜화동" 등
-  createdAt?: string; // "2025.03.12"
+  location?: string;
+  createdAt?: string;
   description?: string;
-  image?: string; // "/trade/table-2p.jpg" 이런 식(너가 저장)
+  image?: string;
 };
 
 const mockItems: TradeItemEx[] = [
@@ -107,7 +111,12 @@ const tagOptions = [
 ];
 const locationOptions = ["100m 이내", "1km 이내", "1-5km", "5-10km", "10km 이상"];
 
-export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScreenProps) {
+export default function TradeScreen({
+  onAddClick,
+  onDetailModeChange,
+  initialQuery,
+  onQueryChange,
+}: TradeScreenProps) {
   const [query, setQuery] = useState("");
 
   const [selectedItem, setSelectedItem] = useState<TradeItemEx | null>(null);
@@ -124,6 +133,15 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
 
   const isFilterActive = !!category || tags.length > 0;
   const isLocationActive = !!location;
+
+  // ✅ Home → Trade로 넘어올 때 검색어 주입
+  useEffect(() => {
+    if (typeof initialQuery !== "string") return;
+
+    const next = initialQuery;
+    // 동일값이면 setState 불필요
+    setQuery((prev) => (prev === next ? prev : next));
+  }, [initialQuery]);
 
   const handleFilterClick = () => {
     setDraftCategory(category);
@@ -171,7 +189,7 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
           (it.location ?? "").includes(q)
         );
       });
-  }, [query, category, tags]);
+  }, [query, category, tags, location]); // location도 필터링에 쓰면 여기 포함(지금은 검색만)
 
   // 상세
   if (selectedItem) {
@@ -191,11 +209,19 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
                 className="w-full bg-transparent text-sm outline-none placeholder:text-slate-300"
                 placeholder="어떤 소품을 찾으시나요?"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setQuery(v);
+                  onQueryChange?.(v); // ✅ Home 쪽 상태도 같이 갱신
+                }}
               />
             </div>
 
-            <button className="mr-4 flex h-[48px] w-[48px] items-center justify-center rounded-2xl bg-gradient-to-r from-white to-[#D9FFEE]">
+            <button
+              type="button"
+              className="mr-4 flex h-[48px] w-[48px] items-center justify-center rounded-2xl bg-gradient-to-r from-white to-[#D9FFEE]"
+              // 카메라 기능은 나중에
+            >
               <Image src="/icons/camera.svg" alt="카메라" width={22} height={20} />
             </button>
           </div>
@@ -247,7 +273,12 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
                 <div className="absolute left-0 top-11 z-20 w-36 rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 shadow-[0_10px_30px_rgba(15,23,42,0.17)]">
                   <div className="space-y-2">
                     {locationOptions.map((opt) => (
-                      <button key={opt} className="block w-full text-left" onClick={() => handleLocationSelect(opt)}>
+                      <button
+                        key={opt}
+                        type="button"
+                        className="block w-full text-left"
+                        onClick={() => handleLocationSelect(opt)}
+                      >
                         {opt}
                       </button>
                     ))}
@@ -275,10 +306,7 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
       {/* 필터 바텀시트 */}
       {showFilterSheet && (
         <div className="fixed inset-0 z-30 flex items-end bg-black/60" onClick={() => setShowFilterSheet(false)}>
-          <div
-            className="w-full rounded-t-3xl bg-white px-6 pb-8 pt-6"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="w-full rounded-t-3xl bg-white px-6 pb-8 pt-6" onClick={(e) => e.stopPropagation()}>
             <p className="text-base font-semibold text-slate-900">필터</p>
 
             <div className="mt-6 space-y-6 text-sm text-slate-800">
@@ -291,6 +319,7 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
                     return (
                       <button
                         key={label}
+                        type="button"
                         onClick={() => setDraftCategory(selected ? null : label)}
                         className={`rounded-full px-4 py-2 text-sm ${
                           selected ? "bg-[#0EBC81] text-white" : "bg-slate-50 text-slate-700"
@@ -312,6 +341,7 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
                     return (
                       <button
                         key={tag}
+                        type="button"
                         onClick={() => toggleDraftTag(tag)}
                         className={`rounded-full px-4 py-2 text-sm ${
                           selected ? "bg-[#0EBC81] text-white" : "bg-slate-50 text-slate-700"
@@ -326,6 +356,7 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
             </div>
 
             <button
+              type="button"
               className="mt-8 w-full rounded-full bg-[#0EBC81] py-3 text-sm font-semibold text-white"
               onClick={handleFilterApply}
             >
@@ -334,7 +365,6 @@ export default function TradeScreen({ onAddClick, onDetailModeChange }: TradeScr
           </div>
         </div>
       )}
-
     </div>
   );
 }
@@ -348,7 +378,6 @@ function TradeListItem({ item, onClick }: { item: TradeItemEx; onClick: () => vo
       onClick={onClick}
       className="flex w-full items-center gap-3 border-b border-slate-100 bg-white px-3 py-3 text-left"
     >
-      {/* ✅ 회색 사각형 + 이미지 */}
       <div className="relative mt-[-36px] h-[96px] w-[96px] flex-shrink-0 overflow-hidden rounded-[10px] bg-[#B2B2B2]">
         {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" /> : null}
       </div>
