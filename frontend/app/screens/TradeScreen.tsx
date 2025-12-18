@@ -14,6 +14,8 @@ type TradeScreenProps = {
   // ✅ Home에서 검색어 넘겨주기용
   initialQuery?: string;
   onQueryChange?: (q: string) => void;
+
+  tabNonce?: number;
 };
 
 type TradeItemEx = TradeItem & {
@@ -116,6 +118,7 @@ export default function TradeScreen({
   onDetailModeChange,
   initialQuery,
   onQueryChange,
+  tabNonce,
 }: TradeScreenProps) {
   const [query, setQuery] = useState("");
 
@@ -133,6 +136,11 @@ export default function TradeScreen({
 
   const isFilterActive = !!category || tags.length > 0;
   const isLocationActive = !!location;
+
+  useEffect(() => {
+    setSelectedItem(null);
+    onDetailModeChange?.(false);
+  }, [tabNonce]);
 
   // ✅ Home → Trade로 넘어올 때 검색어 주입
   useEffect(() => {

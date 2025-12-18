@@ -1,4 +1,3 @@
-// app/screens/MyPageScreen.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -21,6 +20,7 @@ type Review = {
 type MyPageScreenProps = {
   // true면 상세(리뷰) 모드 -> 헤더 숨김
   onDetailModeChange?: (isDetail: boolean) => void;
+  tabNonce?: number;
 };
 
 const performances: Performance[] = [
@@ -53,9 +53,14 @@ const mockReviews: Review[] = [
   },
 ];
 
-export default function MyPageScreen({ onDetailModeChange }: MyPageScreenProps) {
+export default function MyPageScreen({ onDetailModeChange, tabNonce, }: MyPageScreenProps) {
   const [selectedPerformance, setSelectedPerformance] =
     useState<Performance | null>(null);
+
+    useEffect(() => {
+    setSelectedPerformance(null);
+    onDetailModeChange?.(false);
+  }, [tabNonce]);
 
   // ✅ 리뷰 화면 들어가면 true, 나오면 false로 알려줌
   useEffect(() => {

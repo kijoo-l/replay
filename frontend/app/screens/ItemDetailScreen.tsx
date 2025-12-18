@@ -1,4 +1,3 @@
-// app/screens/ItemDetailScreen.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,11 +12,10 @@ export type TradeItem = {
   tags: string[];
   price: string;
 
-  // ✅ TradeScreen 더미데이터 확장 필드(선택)
-  image?: string; // "/trade/xxx.jpg"
-  location?: string; // "연세대학교", "혜화동" 등
-  createdAt?: string; // "2025.03.12"
-  description?: string; // 본문
+  image?: string; 
+  location?: string; 
+  createdAt?: string; 
+  description?: string; 
 };
 
 type ItemDetailScreenProps = {
@@ -84,7 +82,6 @@ export default function ItemDetailScreen({ item, onBack }: ItemDetailScreenProps
     setShowSuccess(false);
   };
 
-  // ✅ 화면에 표시할 텍스트 정리
   const metaLine = `${item.school}${item.createdAt ? ` · ${item.createdAt}` : ""}`;
   const tagLine = item.tags?.length ? item.tags.join(" · ") : "";
   const descText = item.description?.trim() ? item.description : "상품 설명이 없습니다.";
@@ -101,7 +98,7 @@ export default function ItemDetailScreen({ item, onBack }: ItemDetailScreenProps
           <ChevronLeft className="h-5 w-5" />
         </button>
 
-        {/* ✅ 제목도 item.title로 */}
+        {/* 제목 */}
         <span className="text-[14px]">{item.title}</span>
 
         <div className="w-8" />
@@ -111,7 +108,7 @@ export default function ItemDetailScreen({ item, onBack }: ItemDetailScreenProps
       <main className="no-scrollbar flex-1 overflow-y-auto">
         {/* 이미지 영역 */}
         <section className="bg-slate-200">
-          {/* ✅ 회색 박스 안에 이미지 넣기 */}
+          {/* 이미지 */}
           <div className="relative h-65 w-full overflow-hidden bg-slate-200">
             {item.image ? (
               <Image
@@ -127,28 +124,28 @@ export default function ItemDetailScreen({ item, onBack }: ItemDetailScreenProps
 
         {/* 정보 영역 */}
         <section className="px-6 pb-32 pt-4">
-          {/* ✅ 카테고리 */}
+          {/* 카테고리 */}
           <span className="inline-flex w-fit rounded-[5px] bg-[#E7F8F2] px-2 py-0.5 text-[14px] font-bold text-[#0EBC81]">
             {item.category}
           </span>
 
-          {/* ✅ 상품명 */}
+          {/* 상품명 */}
           <h1 className="mt-3 text-[22px] text-[#1A1A1A]">{item.title}</h1>
 
-          {/* ✅ 학교/등록일 */}
+          {/* 학교/등록일 */}
           <p className="mt-2 text-sm text-[#A7A7A7]">{metaLine}</p>
 
-          {/* ✅ 위치가 있으면 한 줄 더 */}
+          {/* 위치 */}
           {item.location ? (
             <p className="mt-1 text-sm text-[#A7A7A7]">위치 · {item.location}</p>
           ) : null}
 
-          {/* ✅ 태그 */}
+          {/* 태그 */}
           {tagLine ? (
             <p className="mt-1 text-[14px] text-[#A7A7A7]">{tagLine}</p>
           ) : null}
 
-          {/* ✅ 설명 */}
+          {/* 설명 */}
           <p className="mt-6 whitespace-pre-line text-[16px] leading-relaxed text-[#1A1A1A]">
             {descText}
           </p>
@@ -158,7 +155,7 @@ export default function ItemDetailScreen({ item, onBack }: ItemDetailScreenProps
       {/* 하단 가격 + 버튼 영역 */}
       <div className="fixed bottom-16 left-0 right-0 border-t border-slate-100 bg-white px-6 pb-4 pt-3">
         <div className="mb-3 flex items-center justify-between">
-          {/* ✅ 가격 */}
+          {/* 가격 */}
           <span className="ml-auto text-lg font-semibold text-slate-900">
             {item.price}
           </span>
@@ -285,7 +282,6 @@ export default function ItemDetailScreen({ item, onBack }: ItemDetailScreenProps
   );
 }
 
-/* ----------------- 캘린더 그리드 컴포넌트 ----------------- */
 
 type CalendarGridProps = {
   mode: "range" | "single";

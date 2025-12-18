@@ -105,6 +105,8 @@ export default function HomeScreen() {
   // ✅ 홈 검색 → 거래탭 검색어 전달용
   const [tradeSearch, setTradeSearch] = useState("");
 
+  const [tabNonce, setTabNonce] = useState(0);
+
   // ✅ auth 화면이면 헤더/네비 없이 auth 화면만
   if (auth.authScreen === "login") return <LoginScreen />;
   if (auth.authScreen === "signupRole") return <SignupRoleScreen />;
@@ -119,8 +121,17 @@ export default function HomeScreen() {
     setHeaderHidden(false);
   };
 
+
   const handleTabChange = (tab: BottomTabKey) => {
+    
+    if (tab === activeTab) {
+      setTabNonce((n) => n + 1);
+      resetToBase();
+      return;
+    }
+    
     setActiveTab(tab);
+    setTabNonce((n) => n + 1);
     resetToBase();
   };
 
@@ -246,6 +257,7 @@ export default function HomeScreen() {
 
             {activeTab === "trade" && (
               <TradeScreen
+                tabNonce={tabNonce}
                 initialQuery={tradeSearch}
                 onQueryChange={setTradeSearch}
                 onAddClick={() => {
@@ -260,6 +272,7 @@ export default function HomeScreen() {
 
             {activeTab === "manage" && (
               <ManageScreen
+                tabNonce={tabNonce}
                 onAddClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
@@ -272,6 +285,7 @@ export default function HomeScreen() {
 
             {activeTab === "community" && (
               <CommunityScreen
+                tabNonce={tabNonce}
                 onCalendarClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
@@ -282,7 +296,9 @@ export default function HomeScreen() {
               />
             )}
 
-            {activeTab === "mypage" && <MyPageScreen onDetailModeChange={setHeaderHidden} />}
+            {activeTab === "mypage" && <MyPageScreen 
+            tabNonce={tabNonce}
+            onDetailModeChange={setHeaderHidden} />}
           </>
         )}
       </main>
