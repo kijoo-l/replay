@@ -76,15 +76,14 @@ const HOME_RECENT_ITEMS: HomeRecentItem[] = [
 ];
 
 const UPCOMING_PERFORMANCES: UpcomingPerformance[] = [
-  { id: 5001, title: "우리들의 여름", dateText: "2025.02.15-02.17", placeText: "연세대학교 학생회관 대강당" },
-  { id: 5002, title: "햄릿: 변주", dateText: "2025.03.01-03.03", placeText: "대학로 소극장 예그린" },
-  { id: 5003, title: "웃음의 기술", dateText: "2025.03.22-03.23", placeText: "부산문화회관 소극장" },
+  { id: 1, title: "우리들의 여름", dateText: "2025.02.15-02.17", placeText: "연세대학교 학생회관 대강당" },
+  { id: 2, title: "햄릿: 변주", dateText: "2025.03.01-03.03", placeText: "대학로 소극장 예그린" },
+  { id: 3, title: "웃음의 기술", dateText: "2025.03.22-03.23", placeText: "부산문화회관 소극장" },
 ];
 
 export default function HomeScreen() {
   const auth = useAuth();
 
-  // ✅ 모든 훅은 return 이전에 호출
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as BottomTabKey) ?? "home";
 
@@ -97,17 +96,14 @@ export default function HomeScreen() {
   const [headerHidden, setHeaderHidden] = useState(false);
 
   const [homeSelectedItem, setHomeSelectedItem] = useState<HomeRecentItem | null>(null);
-  const [homeSelectedPerformance, setHomeSelectedPerformance] = useState<UpcomingPerformance | null>(null);
 
-  // ✅ 알림 드로어
+  const [calendarSelectedId, setCalendarSelectedId] = useState<number | null>(null);
+
   const [notiOpen, setNotiOpen] = useState(false);
-
-  // ✅ 홈 검색 → 거래탭 검색어 전달용
   const [tradeSearch, setTradeSearch] = useState("");
 
   const [tabNonce, setTabNonce] = useState(0);
 
-  // ✅ auth 화면이면 헤더/네비 없이 auth 화면만
   if (auth.authScreen === "login") return <LoginScreen />;
   if (auth.authScreen === "signupRole") return <SignupRoleScreen />;
   if (auth.authScreen === "signupForm") return <SignupFormScreen />;
@@ -117,19 +113,17 @@ export default function HomeScreen() {
     setShowPostForm(false);
     setShowCalendar(false);
     setHomeSelectedItem(null);
-    setHomeSelectedPerformance(null);
+    setCalendarSelectedId(null);
     setHeaderHidden(false);
   };
 
-
   const handleTabChange = (tab: BottomTabKey) => {
-    
     if (tab === activeTab) {
       setTabNonce((n) => n + 1);
       resetToBase();
       return;
     }
-    
+
     setActiveTab(tab);
     setTabNonce((n) => n + 1);
     resetToBase();
@@ -148,14 +142,11 @@ export default function HomeScreen() {
 
   return (
     <div className="flex h-full w-full flex-col bg-slate-50">
-      {/* ✅ requireLogin용 모달 */}
       <NeedLoginModal open={auth.needLoginOpen} onClose={auth.closeNeedLogin} onGoLogin={auth.goLoginFromModal} />
 
-      {/* ✅ 알림 드로어 */}
       <NotificationDrawer
         open={notiOpen}
         onClose={() => setNotiOpen(false)}
-        // NOTE: NotificationDrawer에 isLoggedIn prop이 없다면 컴포넌트에 추가해야 함.
         isLoggedIn={auth.isLoggedIn}
         onGoLogin={() => {
           setNotiOpen(false);
@@ -172,8 +163,8 @@ export default function HomeScreen() {
 
       <AppHeader
         title={headerTitle}
-        showLogo={!showItemForm && !showPostForm && !showCalendar && !homeSelectedItem && !homeSelectedPerformance}
-        hidden={headerHidden || showCalendar || !!homeSelectedItem || !!homeSelectedPerformance}
+        showLogo={!showItemForm && !showPostForm && !showCalendar && !homeSelectedItem}
+        hidden={headerHidden || showCalendar || !!homeSelectedItem}
         onBellClick={() => setNotiOpen(true)}
       />
 
@@ -192,22 +183,17 @@ export default function HomeScreen() {
           <PerformanceCalendarScreen
             onBack={() => {
               setShowCalendar(false);
+              setCalendarSelectedId(null);
               setHeaderHidden(false);
             }}
+            initialSelectedId={calendarSelectedId}
+            onDetailModeChange={setHeaderHidden}
           />
         ) : homeSelectedItem ? (
           <ItemDetailScreen
             item={homeSelectedItem}
             onBack={() => {
               setHomeSelectedItem(null);
-              setHeaderHidden(false);
-            }}
-          />
-        ) : homeSelectedPerformance ? (
-          <PerformanceDetailScreen
-            p={homeSelectedPerformance}
-            onBack={() => {
-              setHomeSelectedPerformance(null);
               setHeaderHidden(false);
             }}
           />
@@ -232,6 +218,7 @@ export default function HomeScreen() {
                 onClickUpcomingArrow={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
+                    setCalendarSelectedId(null);
                     setShowCalendar(true);
                   });
                 }}
@@ -244,7 +231,8 @@ export default function HomeScreen() {
                 onClickUpcomingItem={(p) => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
-                    setHomeSelectedPerformance(p);
+                    setCalendarSelectedId(p.id);
+                    setShowCalendar(true);
                   });
                 }}
                 onSearchGoTrade={(q) => {
@@ -289,6 +277,7 @@ export default function HomeScreen() {
                 onCalendarClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
+                    setCalendarSelectedId(null);
                     setShowCalendar(true);
                   });
                 }}
@@ -296,9 +285,7 @@ export default function HomeScreen() {
               />
             )}
 
-            {activeTab === "mypage" && <MyPageScreen 
-            tabNonce={tabNonce}
-            onDetailModeChange={setHeaderHidden} />}
+            {activeTab === "mypage" && <MyPageScreen tabNonce={tabNonce} onDetailModeChange={setHeaderHidden} />}
           </>
         )}
       </main>
@@ -308,7 +295,6 @@ export default function HomeScreen() {
   );
 }
 
-/* ===================== 홈 탭 ===================== */
 
 function HomeTab({
   recentItems,
@@ -376,13 +362,7 @@ function HomeTab({
         <SectionHeaderWithArrow title="최근 등록 물품" onArrowClick={onClickRecentArrow} />
         <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
           {recentItems.map((it) => (
-            <ItemCard
-              key={it.id}
-              category={it.category}
-              title={it.title}
-              image={it.image}
-              onClick={() => onClickRecentItem(it)}
-            />
+            <ItemCard key={it.id} category={it.category} title={it.title} image={it.image} onClick={() => onClickRecentItem(it)} />
           ))}
         </div>
       </section>
@@ -464,24 +444,3 @@ function PerformanceCard({
   );
 }
 
-/* =================== 공연 상세 화면 =================== */
-
-function PerformanceDetailScreen({ p, onBack }: { p: UpcomingPerformance; onBack: () => void }) {
-  return (
-    <div className="relative flex h-full flex-col bg-white">
-      <div className="flex h-20 items-center px-6">
-        <button type="button" onClick={onBack}>
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="no-scrollbar flex-1 overflow-y-auto px-6 pb-24 pt-2">
-        <p className="text-[20px] font-bold text-[#1A1A1A]">{p.title}</p>
-        <p className="mt-3 text-[14px] text-[#9E9E9E]">{p.dateText}</p>
-        <p className="mt-1 text-[14px] text-[#9E9E9E]">{p.placeText}</p>
-
-        <div className="mt-6 h-[260px] w-full rounded-[20px] bg-[#D9D9D9]" />
-      </div>
-    </div>
-  );
-}
