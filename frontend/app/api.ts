@@ -16,15 +16,12 @@ export async function apiFetch<T>(
     cache: "no-store",
   });
 
-  // 응답이 string(token)일 수도 있어서 text 먼저 받고 파싱 시도
   const text = await res.text();
 
   if (!res.ok) {
-    // swagger 422 같은 에러도 여기로 떨어짐
     throw new Error(text || `HTTP ${res.status}`);
   }
 
-  // JSON이면 JSON으로, 아니면 string 그대로
   try {
     return JSON.parse(text) as T;
   } catch {

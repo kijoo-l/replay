@@ -76,15 +76,14 @@ const HOME_RECENT_ITEMS: HomeRecentItem[] = [
 ];
 
 const UPCOMING_PERFORMANCES: UpcomingPerformance[] = [
-  { id: 5001, title: "우리들의 여름", dateText: "2025.02.15-02.17", placeText: "연세대학교 학생회관 대강당" },
-  { id: 5002, title: "햄릿: 변주", dateText: "2025.03.01-03.03", placeText: "대학로 소극장 예그린" },
-  { id: 5003, title: "웃음의 기술", dateText: "2025.03.22-03.23", placeText: "부산문화회관 소극장" },
+  { id: 1, title: "우리들의 여름", dateText: "2025.02.15-02.17", placeText: "연세대학교 학생회관 대강당" },
+  { id: 2, title: "햄릿: 변주", dateText: "2025.03.01-03.03", placeText: "대학로 소극장 예그린" },
+  { id: 3, title: "웃음의 기술", dateText: "2025.03.22-03.23", placeText: "부산문화회관 소극장" },
 ];
 
 export default function HomeScreen() {
   const auth = useAuth();
 
-  // ✅ 모든 훅은 return 이전에 호출
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as BottomTabKey) ?? "home";
 
@@ -97,12 +96,14 @@ export default function HomeScreen() {
   const [headerHidden, setHeaderHidden] = useState(false);
 
   const [homeSelectedItem, setHomeSelectedItem] = useState<HomeRecentItem | null>(null);
-  const [homeSelectedPerformance, setHomeSelectedPerformance] = useState<UpcomingPerformance | null>(null);
 
-  // ✅ 알림 드로어
+  const [calendarSelectedId, setCalendarSelectedId] = useState<number | null>(null);
+
   const [notiOpen, setNotiOpen] = useState(false);
+  const [tradeSearch, setTradeSearch] = useState("");
 
-  // ✅ auth 화면이면 헤더/네비 없이 auth 화면만
+  const [tabNonce, setTabNonce] = useState(0);
+
   if (auth.authScreen === "login") return <LoginScreen />;
   if (auth.authScreen === "signupRole") return <SignupRoleScreen />;
   if (auth.authScreen === "signupForm") return <SignupFormScreen />;
@@ -112,12 +113,19 @@ export default function HomeScreen() {
     setShowPostForm(false);
     setShowCalendar(false);
     setHomeSelectedItem(null);
-    setHomeSelectedPerformance(null);
+    setCalendarSelectedId(null);
     setHeaderHidden(false);
   };
 
   const handleTabChange = (tab: BottomTabKey) => {
+    if (tab === activeTab) {
+      setTabNonce((n) => n + 1);
+      resetToBase();
+      return;
+    }
+
     setActiveTab(tab);
+    setTabNonce((n) => n + 1);
     resetToBase();
   };
 
@@ -134,14 +142,12 @@ export default function HomeScreen() {
 
   return (
     <div className="flex h-full w-full flex-col bg-slate-50">
-      {/* ✅ requireLogin용 모달 */}
       <NeedLoginModal open={auth.needLoginOpen} onClose={auth.closeNeedLogin} onGoLogin={auth.goLoginFromModal} />
 
-      {/* ✅ 알림 드로어 */}
       <NotificationDrawer
         open={notiOpen}
         onClose={() => setNotiOpen(false)}
-        isLoggedIn={!!auth.token}
+        isLoggedIn={auth.isLoggedIn}
         onGoLogin={() => {
           setNotiOpen(false);
           auth.openLogin();
@@ -157,8 +163,8 @@ export default function HomeScreen() {
 
       <AppHeader
         title={headerTitle}
-        showLogo={!showItemForm && !showPostForm && !showCalendar && !homeSelectedItem && !homeSelectedPerformance}
-        hidden={headerHidden || showCalendar || !!homeSelectedItem || !!homeSelectedPerformance}
+        showLogo={!showItemForm && !showPostForm && !showCalendar && !homeSelectedItem}
+        hidden={headerHidden || showCalendar || !!homeSelectedItem}
         onBellClick={() => setNotiOpen(true)}
       />
 
@@ -177,22 +183,17 @@ export default function HomeScreen() {
           <PerformanceCalendarScreen
             onBack={() => {
               setShowCalendar(false);
+              setCalendarSelectedId(null);
               setHeaderHidden(false);
             }}
+            initialSelectedId={calendarSelectedId}
+            onDetailModeChange={setHeaderHidden}
           />
         ) : homeSelectedItem ? (
           <ItemDetailScreen
             item={homeSelectedItem}
             onBack={() => {
               setHomeSelectedItem(null);
-              setHeaderHidden(false);
-            }}
-          />
-        ) : homeSelectedPerformance ? (
-          <PerformanceDetailScreen
-            p={homeSelectedPerformance}
-            onBack={() => {
-              setHomeSelectedPerformance(null);
               setHeaderHidden(false);
             }}
           />
@@ -217,6 +218,7 @@ export default function HomeScreen() {
                 onClickUpcomingArrow={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
+                    setCalendarSelectedId(null);
                     setShowCalendar(true);
                   });
                 }}
@@ -229,10 +231,12 @@ export default function HomeScreen() {
                 onClickUpcomingItem={(p) => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
-                    setHomeSelectedPerformance(p);
+                    setCalendarSelectedId(p.id);
+                    setShowCalendar(true);
                   });
                 }}
-                onSearchGoTrade={() => {
+                onSearchGoTrade={(q) => {
+                  setTradeSearch(q);
                   setActiveTab("trade");
                   resetToBase();
                 }}
@@ -241,6 +245,9 @@ export default function HomeScreen() {
 
             {activeTab === "trade" && (
               <TradeScreen
+                tabNonce={tabNonce}
+                initialQuery={tradeSearch}
+                onQueryChange={setTradeSearch}
                 onAddClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
@@ -253,6 +260,7 @@ export default function HomeScreen() {
 
             {activeTab === "manage" && (
               <ManageScreen
+                tabNonce={tabNonce}
                 onAddClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
@@ -265,9 +273,11 @@ export default function HomeScreen() {
 
             {activeTab === "community" && (
               <CommunityScreen
+                tabNonce={tabNonce}
                 onCalendarClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
+                    setCalendarSelectedId(null);
                     setShowCalendar(true);
                   });
                 }}
@@ -275,7 +285,7 @@ export default function HomeScreen() {
               />
             )}
 
-            {activeTab === "mypage" && <MyPageScreen onDetailModeChange={setHeaderHidden} />}
+            {activeTab === "mypage" && <MyPageScreen tabNonce={tabNonce} onDetailModeChange={setHeaderHidden} />}
           </>
         )}
       </main>
@@ -285,7 +295,6 @@ export default function HomeScreen() {
   );
 }
 
-/* ===================== 홈 탭 ===================== */
 
 function HomeTab({
   recentItems,
@@ -304,7 +313,7 @@ function HomeTab({
   onClickUpcomingArrow: () => void;
   onClickRecentItem: (item: HomeRecentItem) => void;
   onClickUpcomingItem: (p: UpcomingPerformance) => void;
-  onSearchGoTrade: () => void;
+  onSearchGoTrade: (q: string) => void;
 }) {
   const [homeSearch, setHomeSearch] = useState("");
 
@@ -323,13 +332,13 @@ function HomeTab({
               value={homeSearch}
               onChange={(e) => setHomeSearch(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") onSearchGoTrade();
+                if (e.key === "Enter") onSearchGoTrade(homeSearch.trim());
               }}
             />
           </div>
           <button
             className="flex h-10 w-10 items-center justify-center rounded-[20px] bg-gradient-to-r from-white to-[#D9FFEE]"
-            onClick={onSearchGoTrade}
+            onClick={() => onSearchGoTrade(homeSearch.trim())}
             type="button"
           >
             <Image src="/icons/camera.svg" alt="카메라" width={18} height={18} />
@@ -362,7 +371,13 @@ function HomeTab({
         <SectionHeaderWithArrow title="다가오는 공연" onArrowClick={onClickUpcomingArrow} />
         <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
           {upcoming.map((p) => (
-            <PerformanceCard key={p.id} title={p.title} dateText={p.dateText} placeText={p.placeText} onClick={() => onClickUpcomingItem(p)} />
+            <PerformanceCard
+              key={p.id}
+              title={p.title}
+              dateText={p.dateText}
+              placeText={p.placeText}
+              onClick={() => onClickUpcomingItem(p)}
+            />
           ))}
         </div>
       </section>
@@ -398,7 +413,9 @@ function ItemCard({
         {image ? <Image src={image} alt={title} fill className="object-cover" /> : null}
       </div>
       <div className="ml-3 flex flex-col gap-1">
-        <span className="inline-flex w-fit rounded-[5px] bg-[#E7F8F2] px-2 py-0.5 text-[14px] font-bold text-[#0EBC81]">{category}</span>
+        <span className="inline-flex w-fit rounded-[5px] bg-[#E7F8F2] px-2 py-0.5 text-[14px] font-bold text-[#0EBC81]">
+          {category}
+        </span>
         <span className="text-[16px] text-[#4F4F4F]">{title}</span>
       </div>
     </button>
@@ -427,24 +444,3 @@ function PerformanceCard({
   );
 }
 
-/* =================== 공연 상세 화면 =================== */
-
-function PerformanceDetailScreen({ p, onBack }: { p: UpcomingPerformance; onBack: () => void }) {
-  return (
-    <div className="relative flex h-full flex-col bg-white">
-      <div className="flex h-20 items-center px-6">
-        <button type="button" onClick={onBack}>
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="no-scrollbar flex-1 overflow-y-auto px-6 pb-24 pt-2">
-        <p className="text-[20px] font-bold text-[#1A1A1A]">{p.title}</p>
-        <p className="mt-3 text-[14px] text-[#9E9E9E]">{p.dateText}</p>
-        <p className="mt-1 text-[14px] text-[#9E9E9E]">{p.placeText}</p>
-
-        <div className="mt-6 h-[260px] w-full rounded-[20px] bg-[#D9D9D9]" />
-      </div>
-    </div>
-  );
-}

@@ -7,3 +7,6 @@ from .user import User
 from .inventory_item import InventoryItem
 from .trade_listing import TradeListing
 from .trade_reservation import TradeReservation
+from .community_post import CommunityPost
+from .performance import Performance
+from .notification import Notification

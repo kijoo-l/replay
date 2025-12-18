@@ -5,58 +5,45 @@ import { ChevronLeft, Search, MapPin, Plus, Star } from "lucide-react";
 import Image from "next/image";
 
 type PerformanceCalendarScreenProps = {
-  onBack: () => void; 
-  onDetailModeChange?: (isDetail: boolean) => void; // HomeScreen AppHeader 숨김용
+  onBack: () => void;
+  onDetailModeChange?: (isDetail: boolean) => void;
+  initialSelectedId?: number | null; // ✅ HomeScreen에서 넘어온 id
 };
-
 
 type View = "list" | "detail" | "create";
 
 type Performance = {
   id: number;
-  title: string; // 공연명
-  genre: string; // 공연 장르
-  city: string; // 공연 위치(서울/부산...)
-  place: string; // 공연 장소
-  dateRange: string; // 공연 일시 "2025.02.15-02.17"
-  description: string; // 공연 소개
-  university: string; // 학교(또는 주최)
-  image: string; // 썸네일/포스터 경로
-  isMine: boolean; // 내 공연 여부
+  title: string;
+  genre: string;
+  city: string;
+  place: string;
+  dateRange: string;
+  description: string;
+  university: string;
+  image: string;
+  isMine: boolean;
 };
 
-const cityOptions = [
-  "서울",
-  "경기",
-  "인천",
-  "부산",
-  "대구",
-  "대전",
-  "광주",
-  "울산",
-  "기타",
-];
+const cityOptions = ["서울", "경기", "인천", "부산", "대구", "대전", "광주", "울산", "기타"];
 
 export default function PerformanceCalendarScreen({
+  onBack,
   onDetailModeChange,
+  initialSelectedId,
 }: PerformanceCalendarScreenProps) {
   const [view, setView] = useState<View>("list");
-
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  // 위치 드롭다운
   const [showCityMenu, setShowCityMenu] = useState(false);
   const [city, setCity] = useState<string | null>(null);
 
-  // 검색
   const [query, setQuery] = useState("");
 
-  // 후기 바텀시트
   const [showReviewSheet, setShowReviewSheet] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
 
-  // ✅ 더미 공연 데이터 (이미지 경로는 너가 나중에 파일만 맞춰 넣으면 됨)
   const [performances, setPerformances] = useState<Performance[]>([
     {
       id: 1,
@@ -104,58 +91,49 @@ export default function PerformanceCalendarScreen({
     return performances.find((p) => p.id === selectedId) ?? null;
   }, [selectedId, performances]);
 
-  // ✅ list가 아니면 AppHeader 숨김 (HomeScreen에서 headerHidden으로 받음)
+  useEffect(() => {
+    if (initialSelectedId) {
+      setSelectedId(initialSelectedId);
+      setView("detail");
+    }
+  }, [initialSelectedId]);
+
   useEffect(() => {
     if (!onDetailModeChange) return;
     onDetailModeChange(view !== "list");
   }, [view, onDetailModeChange]);
 
-  // 리스트 필터링
   const filtered = useMemo(() => {
     return performances.filter((p) => {
       const okCity = city ? p.city === city : true;
 
       const q = query.trim();
-      const okQuery = q
-        ? p.title.includes(q) ||
-          p.university.includes(q) ||
-          p.genre.includes(q) ||
-          p.place.includes(q)
-        : true;
+      const okQuery = q ? p.title.includes(q) || p.university.includes(q) || p.genre.includes(q) || p.place.includes(q) : true;
 
       return okCity && okQuery;
     });
   }, [performances, city, query]);
 
-
-  // 리스트 전용 헤더 (가운데 타이틀)
   const ListHeader = () => {
     return (
       <div className="flex h-14 items-center bg-white px-4">
-        <ChevronLeft className="h-5 w-5 text-[#A7A7A7]" />
-        <p className="mx-auto items-center text-[16px] font-bold text-[#1A1A1A]">
-          대학 공연 일정
-        </p>
+        <button type="button" onClick={onBack} className="flex items-center justify-center">
+          <ChevronLeft className="h-5 w-5 text-[#A7A7A7]" />
+        </button>
+        <p className="mx-auto items-center text-[16px] font-bold text-[#1A1A1A]">대학 공연 일정</p>
+        <div className="w-5" />
       </div>
     );
   };
 
-  // 상세/등록 공통 헤더: "< 대학 공연 일정"
   const BackToListHeader = ({ rightSlot }: { rightSlot?: React.ReactNode }) => {
     return (
       <div className="flex h-14 items-center bg-white px-4">
         <button
           type="button"
           onClick={() => {
-            if (view === "detail") {
-              setSelectedId(null);
-              setView("list");
-              return;
-            }
-            if (view === "create") {
-              setView("list");
-              return;
-            }
+            setSelectedId(null);
+            setView("list");
           }}
           className="flex items-center gap-1"
         >
@@ -167,14 +145,12 @@ export default function PerformanceCalendarScreen({
     );
   };
 
-  /* ====================== 1) 리스트 화면 ====================== */
   if (view === "list") {
     return (
       <div className="relative flex h-full flex-col bg-white">
         <ListHeader />
 
         <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-24 pt-4">
-          {/* 검색 */}
           <div className="flex items-center gap-2 rounded-3xl bg-slate-100 px-6 py-3">
             <Search className="h-5 w-5 text-[#D1D6DB]" />
             <input
@@ -185,17 +161,12 @@ export default function PerformanceCalendarScreen({
             />
           </div>
 
-          {/* 위치 드롭다운 */}
           <div className="relative mt-4">
             <button
               type="button"
               onClick={() => setShowCityMenu((prev) => !prev)}
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition
-                ${
-                  city
-                    ? "border border-[#0EBC81] bg-[#E7FFF6] text-[#0EBC81]"
-                    : "bg-slate-100 text-[#4F4F4F]"
-                }`}
+                ${city ? "border border-[#0EBC81] bg-[#E7FFF6] text-[#0EBC81]" : "bg-slate-100 text-[#4F4F4F]"}`}
             >
               <MapPin className="h-4 w-4" />
               <span>{city ?? "위치"}</span>
@@ -233,7 +204,6 @@ export default function PerformanceCalendarScreen({
             )}
           </div>
 
-          {/* 리스트 */}
           <div className="mt-6 space-y-4">
             {filtered.map((p) => (
               <button
@@ -245,21 +215,12 @@ export default function PerformanceCalendarScreen({
                 }}
                 className="flex w-full gap-3 rounded-2xl bg-white p-3 text-left shadow-sm"
               >
-                {/* 썸네일 */}
                 <div className="relative h-[96px] w-[96px] overflow-hidden rounded-[10px] bg-[#B2B2B2]">
-                  {/* 이미지 파일 너가 나중에 넣으면 자동 표시됨 */}
-                  <Image
-                    src={p.image}
-                    alt={p.title}
-                    fill
-                    className="object-cover"
-                  />
+                  <Image src={p.image} alt={p.title} fill className="object-cover" />
                 </div>
 
                 <div className="flex flex-1 flex-col justify-center space-y-1">
-                  <p className="text-[16px] font-bold text-[#1A1A1A]">
-                    {p.title}
-                  </p>
+                  <p className="text-[16px] font-bold text-[#1A1A1A]">{p.title}</p>
                   <p className="text-[14px] text-[#0EBC81]">{p.university}</p>
                   <p className="text-[14px] text-[#A7A7A7]">{p.city}</p>
                   <p className="text-[14px] text-[#A7A7A7]">{p.dateRange}</p>
@@ -269,7 +230,6 @@ export default function PerformanceCalendarScreen({
           </div>
         </div>
 
-        {/* + 버튼 */}
         <button
           type="button"
           onClick={() => setView("create")}
@@ -281,20 +241,13 @@ export default function PerformanceCalendarScreen({
     );
   }
 
-  /* ====================== 2) 상세 화면 ====================== */
   if (view === "detail" && selected) {
     return (
       <PerformanceDetail
         header={<BackToListHeader />}
         performance={selected}
-        onBack={() => {
-          setSelectedId(null);
-          setView("list");
-        }}
         onSave={(next) => {
-          setPerformances((prev) =>
-            prev.map((p) => (p.id === next.id ? next : p))
-          );
+          setPerformances((prev) => prev.map((p) => (p.id === next.id ? next : p)));
         }}
         onOpenReview={() => setShowReviewSheet(true)}
         showReviewSheet={showReviewSheet}
@@ -307,12 +260,10 @@ export default function PerformanceCalendarScreen({
     );
   }
 
-  /* ====================== 3) 새 공연 등록 화면 ====================== */
   if (view === "create") {
     return (
       <PerformanceCreate
         header={<BackToListHeader />}
-        onBack={() => setView("list")}
         onCreate={(created) => {
           setPerformances((prev) => [created, ...prev]);
           setView("list");
@@ -324,13 +275,9 @@ export default function PerformanceCalendarScreen({
   return null;
 }
 
-/* ------------------------------------------------------------------ */
-/* 상세 (내 공연이면 수정 가능 / 남 공연이면 후기 등록) */
-/* ------------------------------------------------------------------ */
 function PerformanceDetail(props: {
   header: React.ReactNode;
   performance: Performance;
-  onBack: () => void;
   onSave: (next: Performance) => void;
   onOpenReview: () => void;
 
@@ -376,14 +323,8 @@ function PerformanceDetail(props: {
     <div className="relative h-full bg-white">
       {header}
 
-      {/* 이미지 */}
       <div className="relative h-[320px] bg-[#D9D9D9]">
-        <Image
-          src={performance.image}
-          alt={performance.title}
-          fill
-          className="object-cover"
-        />
+        <Image src={performance.image} alt={performance.title} fill className="object-cover" />
       </div>
 
       <div className="no-scrollbar h-[calc(100%-320px-56px)] overflow-y-auto px-6 py-5 space-y-4">
@@ -459,27 +400,17 @@ function PerformanceDetail(props: {
         </button>
       )}
 
-      {/* 후기 바텀시트 */}
       {showReviewSheet && (
         <div className="fixed inset-0 z-50 bg-black/60" onClick={onCloseReview}>
-          <div
-            className="absolute bottom-0 w-full rounded-t-3xl bg-white p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="text-[16px] font-bold text-[#1A1A1A]">
-              공연 후기를 남겨주세요
-            </p>
+          <div className="absolute bottom-0 w-full rounded-t-3xl bg-white p-6" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[16px] font-bold text-[#1A1A1A]">공연 후기를 남겨주세요</p>
 
             <div className="mt-4 flex gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <Star
                   key={n}
                   onClick={() => setReviewRating(n)}
-                  className={`h-10 w-10 ${
-                    reviewRating >= n
-                      ? "fill-[#0EBC81] text-[#0EBC81]"
-                      : "text-[#D1D6DB]"
-                  }`}
+                  className={`h-10 w-10 ${reviewRating >= n ? "fill-[#0EBC81] text-[#0EBC81]" : "text-[#D1D6DB]"}`}
                 />
               ))}
             </div>
@@ -491,11 +422,7 @@ function PerformanceDetail(props: {
               className="mt-4 h-32 w-full rounded-[12px] border border-[#D1D6DB] p-4 text-[14px] outline-none placeholder:text-[#D1D6DB]"
             />
 
-            <button
-              type="button"
-              onClick={onCloseReview}
-              className="mt-4 w-full rounded-[12px] bg-[#0EBC81] py-4 text-[16px] font-bold text-white"
-            >
+            <button type="button" onClick={onCloseReview} className="mt-4 w-full rounded-[12px] bg-[#0EBC81] py-4 text-[16px] font-bold text-white">
               등록
             </button>
           </div>
@@ -505,14 +432,7 @@ function PerformanceDetail(props: {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* 새 공연 등록 */
-/* ------------------------------------------------------------------ */
-function PerformanceCreate(props: {
-  header: React.ReactNode;
-  onBack: () => void;
-  onCreate: (p: Performance) => void;
-}) {
+function PerformanceCreate(props: { header: React.ReactNode; onCreate: (p: Performance) => void }) {
   const { header, onCreate } = props;
 
   const [title, setTitle] = useState("");
@@ -533,7 +453,7 @@ function PerformanceCreate(props: {
       dateRange: dateRange || "공연 일시",
       description: desc || "",
       university: university || "학교",
-      image: "/performances/new-performance.jpg", // 너가 나중에 교체
+      image: "/performances/new-performance.jpg",
       isMine: true,
     };
     onCreate(newOne);
@@ -554,11 +474,7 @@ function PerformanceCreate(props: {
             className="w-[140px] rounded-[12px] border border-[#D1D6DB] px-4 py-3 text-[16px] font-bold text-[#1A1A1A] outline-none placeholder:text-[#D1D6DB]"
           />
 
-          <button
-            type="button"
-            onClick={submit}
-            className="rounded-[10px] bg-[#E7F8F2] px-4 py-2 text-[14px] font-bold text-[#0EBC81]"
-          >
+          <button type="button" onClick={submit} className="rounded-[10px] bg-[#E7F8F2] px-4 py-2 text-[14px] font-bold text-[#0EBC81]">
             등록
           </button>
         </div>
