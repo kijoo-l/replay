@@ -23,7 +23,7 @@ type AuthContextValue = {
   openSignupForm: () => void;
 
   closeAuth: () => void;
-  goBackAuth: () => void; // ✅ 뒤로(직전 화면)
+  goBackAuth: () => void;
 
   needLoginOpen: boolean;
   closeNeedLogin: () => void;
@@ -41,7 +41,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
   const isLoggedIn = !!token;
 
-  // ✅ auth 화면 스택 (뒤로가기용)
   const [authStack, setAuthStack] = useState<AuthScreen[]>(["none"]);
   const authScreen = authStack[authStack.length - 1];
 

@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/app/auth";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Check } from "lucide-react";
 
 type School = { id: number; name: string; region: string; code: string };
 type Club = {
@@ -70,6 +70,12 @@ export default function SignupFormScreen() {
 
   const [schoolLoading, setSchoolLoading] = useState(false);
   const [clubLoading, setClubLoading] = useState(false);
+  const [pwTouched, setPwTouched] = useState(false);
+
+  const pwLen = password.length;
+  const pwOk = pwLen >= 8;
+  const pwShowError = pwTouched && !pwOk;
+
 
   // 디바운스: 학교 입력 0.3초 멈추면 keyword 확정
   useEffect(() => {
@@ -165,7 +171,7 @@ export default function SignupFormScreen() {
 
   const canSubmit =
     email.trim() &&
-    password.trim() &&
+    pwOk &&
     name.trim() &&
     schoolId !== null &&
     clubId !== null &&
@@ -177,6 +183,15 @@ export default function SignupFormScreen() {
     setErr(null);
     setLoading(true);
     try {
+        console.log("SIGNUP PAYLOAD", {
+        email: email.trim(),
+        password,
+        name: name.trim(),
+        role: signupRole,
+        admin_code: signupRole === "ADMIN" ? adminCode.trim() : undefined,
+        school_id: schoolId,
+        club_id: clubId,
+      });
       await signup({
         email: email.trim(),
         password: password,
@@ -215,13 +230,35 @@ export default function SignupFormScreen() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
+      <div className="relative">
         <input
-          className="w-full rounded-[16px] border border-[#F2F2F2] px-5 py-4 text-[14px] outline-none"
+          className={`w-full rounded-[16px] border px-5 py-4 pr-12 text-[14px] outline-none
+            ${pwShowError ? "border-[#FF4545]" : "border-[#F2F2F2]"}
+          `}
           placeholder="비밀번호"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (!pwTouched) setPwTouched(true);
+          }}
+          onBlur={() => setPwTouched(true)}
         />
+
+        {/* 오른쪽 체크 아이콘 */}
+        {pwOk ? (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0EBC81]">
+              <Check className="h-4 w-4 text-white" />
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <p className={`px-5 text-[10px] ${pwShowError ? "text-[#FF4545]" : "text-[#9E9E9E]"}`}>
+        * 비밀번호는 8자 이상 입력해주세요.
+      </p>
+
         <input
           className="w-full rounded-[16px] border border-[#F2F2F2] px-5 py-4 text-[14px] outline-none"
           placeholder="이름"
