@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import List, Optional
+import json
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -15,23 +16,27 @@ from app.models.review import Review
 from app.repositories.review_repository import ReviewRepository
 from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewOut
 
-# performances 테이블 존재 전제 (모델은 이미 프로젝트에 있을 것)
-from app.models.performance import Performance  # type: ignore
+from app.models.performance import Performance  # 공연 도메인
+from app.models.notification import NotificationType
+from app.services.notification_service import NotificationService
 
 
 router = APIRouter(tags=["Reviews"])
 
 
 def _is_admin_of_performance(user: User, performance: Performance) -> bool:
-    return user.role == UserRole.ADMIN and getattr(user, "club_id", None) == getattr(performance, "club_id", None)
+    return (
+        user.role == UserRole.ADMIN
+        and user.club_id is not None
+        and user.club_id == performance.club_id
+    )
 
 
 @router.post(
     "/performances/{performance_id}/reviews",
-    response_model=None,
     status_code=status.HTTP_201_CREATED,
 )
-def create_review(
+async def create_review(
     performance_id: int,
     data: ReviewCreate,
     db: Session = Depends(get_db),
@@ -41,7 +46,7 @@ def create_review(
     if not performance:
         raise HTTPException(status_code=404, detail="공연 정보를 찾을 수 없습니다.")
 
-    created = ReviewRepository.create(
+    review = ReviewRepository.create(
         db=db,
         performance_id=performance_id,
         author_user_id=current_user.id,
@@ -49,12 +54,41 @@ def create_review(
         is_public=data.is_public,
         rating=data.rating,
     )
-    return ok(ReviewOut.model_validate(created))
+
+    # 🔔 알림 발행: 해당 공연 동아리 관리자에게
+    admins: List[User] = (
+        db.query(User)
+        .filter(User.role == UserRole.ADMIN)
+        .filter(User.club_id == performance.club_id)
+        .all()
+    )
+
+    payload = json.dumps(
+        {
+            "performance_id": performance.id,
+            "review_id": review.id,
+            "author_user_id": current_user.id,
+        },
+        ensure_ascii=False,
+    )
+
+    for admin in admins:
+        if admin.id == current_user.id:
+            continue
+
+        await NotificationService.notify_user(
+            db=db,
+            user_id=admin.id,
+            type=NotificationType.POST_COMMENT,
+            message="공연에 새로운 후기가 등록되었습니다.",
+            entity_id=performance.id,
+            payload=payload,
+        )
+
+    return ok(ReviewOut.model_validate(review))
 
 
-@router.get(
-    "/performances/{performance_id}/reviews",
-)
+@router.get("/performances/{performance_id}/reviews")
 def list_reviews(
     performance_id: int,
     db: Session = Depends(get_db),
@@ -64,12 +98,9 @@ def list_reviews(
     if not performance:
         raise HTTPException(status_code=404, detail="공연 정보를 찾을 수 없습니다.")
 
-    # 공개 후기 기본 + (작성자 본인 비공개) + (해당 공연 동아리 ADMIN이면 비공개 전부)
-    include_all_private = _is_admin_of_performance(current_user, performance)
-
     q = db.query(Review).filter(Review.performance_id == performance_id)
 
-    if include_all_private:
+    if _is_admin_of_performance(current_user, performance):
         reviews = q.order_by(Review.created_at.desc()).all()
     else:
         reviews = (
@@ -110,8 +141,8 @@ def update_review(
     if data.rating is not None:
         review.rating = data.rating
 
-    updated = ReviewRepository.update(db, review)
-    return ok(ReviewOut.model_validate(updated))
+    review = ReviewRepository.update(db, review)
+    return ok(ReviewOut.model_validate(review))
 
 
 @router.delete("/reviews/{review_id}")
