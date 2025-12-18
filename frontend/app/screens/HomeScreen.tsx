@@ -102,6 +102,11 @@ export default function HomeScreen() {
   // ✅ 알림 드로어
   const [notiOpen, setNotiOpen] = useState(false);
 
+  // ✅ 홈 검색 → 거래탭 검색어 전달용
+  const [tradeSearch, setTradeSearch] = useState("");
+
+  const [tabNonce, setTabNonce] = useState(0);
+
   // ✅ auth 화면이면 헤더/네비 없이 auth 화면만
   if (auth.authScreen === "login") return <LoginScreen />;
   if (auth.authScreen === "signupRole") return <SignupRoleScreen />;
@@ -116,8 +121,17 @@ export default function HomeScreen() {
     setHeaderHidden(false);
   };
 
+
   const handleTabChange = (tab: BottomTabKey) => {
+    
+    if (tab === activeTab) {
+      setTabNonce((n) => n + 1);
+      resetToBase();
+      return;
+    }
+    
     setActiveTab(tab);
+    setTabNonce((n) => n + 1);
     resetToBase();
   };
 
@@ -141,7 +155,8 @@ export default function HomeScreen() {
       <NotificationDrawer
         open={notiOpen}
         onClose={() => setNotiOpen(false)}
-        isLoggedIn={!!auth.token}
+        // NOTE: NotificationDrawer에 isLoggedIn prop이 없다면 컴포넌트에 추가해야 함.
+        isLoggedIn={auth.isLoggedIn}
         onGoLogin={() => {
           setNotiOpen(false);
           auth.openLogin();
@@ -232,7 +247,8 @@ export default function HomeScreen() {
                     setHomeSelectedPerformance(p);
                   });
                 }}
-                onSearchGoTrade={() => {
+                onSearchGoTrade={(q) => {
+                  setTradeSearch(q);
                   setActiveTab("trade");
                   resetToBase();
                 }}
@@ -241,6 +257,9 @@ export default function HomeScreen() {
 
             {activeTab === "trade" && (
               <TradeScreen
+                tabNonce={tabNonce}
+                initialQuery={tradeSearch}
+                onQueryChange={setTradeSearch}
                 onAddClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
@@ -253,6 +272,7 @@ export default function HomeScreen() {
 
             {activeTab === "manage" && (
               <ManageScreen
+                tabNonce={tabNonce}
                 onAddClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
@@ -265,6 +285,7 @@ export default function HomeScreen() {
 
             {activeTab === "community" && (
               <CommunityScreen
+                tabNonce={tabNonce}
                 onCalendarClick={() => {
                   auth.requireLogin(() => {
                     setHeaderHidden(true);
@@ -275,7 +296,9 @@ export default function HomeScreen() {
               />
             )}
 
-            {activeTab === "mypage" && <MyPageScreen onDetailModeChange={setHeaderHidden} />}
+            {activeTab === "mypage" && <MyPageScreen 
+            tabNonce={tabNonce}
+            onDetailModeChange={setHeaderHidden} />}
           </>
         )}
       </main>
@@ -304,7 +327,7 @@ function HomeTab({
   onClickUpcomingArrow: () => void;
   onClickRecentItem: (item: HomeRecentItem) => void;
   onClickUpcomingItem: (p: UpcomingPerformance) => void;
-  onSearchGoTrade: () => void;
+  onSearchGoTrade: (q: string) => void;
 }) {
   const [homeSearch, setHomeSearch] = useState("");
 
@@ -323,13 +346,13 @@ function HomeTab({
               value={homeSearch}
               onChange={(e) => setHomeSearch(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") onSearchGoTrade();
+                if (e.key === "Enter") onSearchGoTrade(homeSearch.trim());
               }}
             />
           </div>
           <button
             className="flex h-10 w-10 items-center justify-center rounded-[20px] bg-gradient-to-r from-white to-[#D9FFEE]"
-            onClick={onSearchGoTrade}
+            onClick={() => onSearchGoTrade(homeSearch.trim())}
             type="button"
           >
             <Image src="/icons/camera.svg" alt="카메라" width={18} height={18} />
@@ -353,7 +376,13 @@ function HomeTab({
         <SectionHeaderWithArrow title="최근 등록 물품" onArrowClick={onClickRecentArrow} />
         <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
           {recentItems.map((it) => (
-            <ItemCard key={it.id} category={it.category} title={it.title} image={it.image} onClick={() => onClickRecentItem(it)} />
+            <ItemCard
+              key={it.id}
+              category={it.category}
+              title={it.title}
+              image={it.image}
+              onClick={() => onClickRecentItem(it)}
+            />
           ))}
         </div>
       </section>
@@ -362,7 +391,13 @@ function HomeTab({
         <SectionHeaderWithArrow title="다가오는 공연" onArrowClick={onClickUpcomingArrow} />
         <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
           {upcoming.map((p) => (
-            <PerformanceCard key={p.id} title={p.title} dateText={p.dateText} placeText={p.placeText} onClick={() => onClickUpcomingItem(p)} />
+            <PerformanceCard
+              key={p.id}
+              title={p.title}
+              dateText={p.dateText}
+              placeText={p.placeText}
+              onClick={() => onClickUpcomingItem(p)}
+            />
           ))}
         </div>
       </section>
@@ -398,7 +433,9 @@ function ItemCard({
         {image ? <Image src={image} alt={title} fill className="object-cover" /> : null}
       </div>
       <div className="ml-3 flex flex-col gap-1">
-        <span className="inline-flex w-fit rounded-[5px] bg-[#E7F8F2] px-2 py-0.5 text-[14px] font-bold text-[#0EBC81]">{category}</span>
+        <span className="inline-flex w-fit rounded-[5px] bg-[#E7F8F2] px-2 py-0.5 text-[14px] font-bold text-[#0EBC81]">
+          {category}
+        </span>
         <span className="text-[16px] text-[#4F4F4F]">{title}</span>
       </div>
     </button>

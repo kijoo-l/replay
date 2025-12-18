@@ -1,4 +1,3 @@
-// app/screens/ManageScreen.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -8,6 +7,8 @@ import { ChevronRight, ChevronLeft } from "lucide-react";
 type ManageScreenProps = {
   onAddClick: () => void;
   onDetailModeChange?: (isDetail: boolean) => void;
+
+  tabNonce?: number;
 };
 
 export type ManageItem = {
@@ -147,6 +148,7 @@ const initialItems: ManageItem[] = [
 export default function ManageScreen({
   onAddClick,
   onDetailModeChange,
+  tabNonce,
 }: ManageScreenProps) {
   const [items, setItems] = useState<ManageItem[]>(initialItems);
   const [activeFilter, setActiveFilter] = useState<string>("전체");
@@ -226,6 +228,13 @@ export default function ManageScreen({
     setEditingItem(null);
   };
 
+  useEffect(() => {
+    setView("list");
+    setSelectedItem(null);
+    setEditingItem(null);
+    onDetailModeChange?.(false);
+  }, [tabNonce]);
+
   // 수정 열기
   const openEdit = () => {
     if (!selectedItem) return;
@@ -289,7 +298,6 @@ export default function ManageScreen({
     );
   }
 
-  // ---------- 리스트 화면 ----------
 
   return (
     <div className="relative flex h-full flex-col bg-white">
@@ -627,21 +635,6 @@ function ManageItemDetailView({ item, onBack, onEdit }: DetailProps) {
         <p className="mt-6 text-[16px] leading-relaxed text-[#1A1A1A]">{item.description}</p>
 
         <p className="mt-8 text-[20px] font-semibold text-[#1A1A1A]">{item.price}</p>
-
-        <div className="mt-6 flex gap-2">
-          <button
-            type="button"
-            className="flex-1 rounded-[10px] bg-[#1976FF] py-3 text-center text-[14px] font-semibold text-white"
-          >
-            대여로 이동
-          </button>
-          <button
-            type="button"
-            className="flex-1 rounded-[10px] bg-[#0EBC81] py-3 text-center text-[14px] font-semibold text-white"
-          >
-            거래로 이동
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-// app/screens/CommunityScreen.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -7,7 +6,8 @@ import { ChevronLeft } from "lucide-react";
 
 type CommunityScreenProps = {
   onCalendarClick: () => void;
-  onHeaderHiddenChange?: (hidden: boolean) => void; // ✅ 상세/글쓰기 때 AppHeader 숨김
+  onHeaderHiddenChange?: (hidden: boolean) => void;
+  tabNonce?: number;
 };
 
 type BoardKey = "일반 게시판" | "소품 요청 게시판";
@@ -192,6 +192,7 @@ const mockPosts: Post[] = [
 export default function CommunityScreen({
   onCalendarClick,
   onHeaderHiddenChange,
+  tabNonce,
 }: CommunityScreenProps) {
   const [activeBoard, setActiveBoard] = useState<BoardKey>("일반 게시판");
 
@@ -248,6 +249,23 @@ export default function CommunityScreen({
   useEffect(() => {
     onHeaderHiddenChange?.(mode === "detail" || mode === "write");
   }, [mode, onHeaderHiddenChange]);
+
+  useEffect(() => {
+    setMode("list");
+    setSelectedPostId(null);
+
+    // 글쓰기 입력값도 초기화(원하면 유지해도 됨)
+    setDraftTitle("");
+    setDraftContent("");
+
+    // 글쓰기 이미지 미리보기 정리
+    setDraftImages((prev) => {
+      prev.forEach((x) => URL.revokeObjectURL(x.previewUrl));
+      return [];
+    });
+
+    onHeaderHiddenChange?.(false);
+  }, [tabNonce]);
 
   const openDetail = (postId: number) => {
     setSelectedPostId(postId);
